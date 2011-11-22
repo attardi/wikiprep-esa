@@ -5,10 +5,10 @@ Copyright (C) 2010  Cagatay Calli <ccalli@gmail.com>
 
 Scans XML output (gum.xml) from Wikiprep, creates 3 tables:
 
-TABLE: pagelinks	COLUMNS: source_id INT, target_id INT
-TABLE: inlinks		COLUMNS: target_id INT, inlink INT
-TABLE: outlinks		COLUMNS: source_id INT, outlink INT
-TABLE: namespace	COLUMNS: id INT
+TABLE: pagelinks    COLUMNS: source_id INT, target_id INT
+TABLE: inlinks        COLUMNS: target_id INT, inlink INT
+TABLE: outlinks        COLUMNS: source_id INT, outlink INT
+TABLE: namespace    COLUMNS: id INT
 
 USAGE: scanData.py <hgw.xml file from Wikiprep>
 
@@ -26,50 +26,50 @@ import xmlwikiprep
 LINK_LOAD_THRES = 10000
 
 try:
-	conn = MySQLdb.connect(host='localhost',user='root',passwd='123456',db='wiki',charset = "utf8", use_unicode = True)
+    conn = MySQLdb.connect(host='localhost', user='root', passwd='123456', db='wiki', charset="utf8", use_unicode=True)
 except MySQLdb.Error, e:
-	print "Error %d: %s" % (e.args[0], e.args[1])
-	sys.exit(1)
+    print "Error %d: %s" % (e.args[0], e.args[1])
+    sys.exit(1)
 
 try:
-	cursor = conn.cursor()
+    cursor = conn.cursor()
 
-	cursor.execute("DROP TABLE IF EXISTS namespace")
-	cursor.execute("""
-		CREATE TABLE namespace
-		(
-		  id INT(10),
-		  KEY (id)
-		) DEFAULT CHARSET=binary
-	""")
+    cursor.execute("DROP TABLE IF EXISTS namespace")
+    cursor.execute("""
+        CREATE TABLE namespace
+        (
+          id INT(10),
+          KEY (id)
+        ) DEFAULT CHARSET=binary
+    """)
 
-	cursor.execute("DROP TABLE IF EXISTS pagelinks")
-	cursor.execute("""
-		CREATE TABLE pagelinks
-		(
-		  source_id INT(10),
-		  target_id INT(10),
-		  KEY (source_id),
-		  KEY (target_id)
-		) DEFAULT CHARSET=binary
-	""")
+    cursor.execute("DROP TABLE IF EXISTS pagelinks")
+    cursor.execute("""
+        CREATE TABLE pagelinks
+        (
+          source_id INT(10),
+          target_id INT(10),
+          KEY (source_id),
+          KEY (target_id)
+        ) DEFAULT CHARSET=binary
+    """)
 
 except MySQLdb.Error, e:
-	print "Error %d: %s" % (e.args[0], e.args[1])
-	sys.exit (1)
+    print "Error %d: %s" % (e.args[0], e.args[1])
+    sys.exit(1)
 
 
 ## handler for SIGTERM ###
 def signalHandler(signum, frame):
     global conn, cursor
-    cursor.close() 
+    cursor.close()
     conn.close()
     sys.exit(1)
 
 signal.signal(signal.SIGTERM, signalHandler)
 #####
 
-reOtherNamespace = re.compile("^(User|Wikipedia|File|MediaWiki|Template|Help|Category|Portal|Book|Talk|Special|Media|WP|User talk|Wikipedia talk|File talk|MediaWiki talk|Template talk|Help talk|Category talk|Portal talk):.+",re.DOTALL)
+reOtherNamespace = re.compile("^(User|Wikipedia|File|MediaWiki|Template|Help|Category|Portal|Book|Talk|Special|Media|WP|User talk|Wikipedia talk|File talk|MediaWiki talk|Template talk|Help talk|Category talk|Portal talk):.+", re.DOTALL)
 
 linkBuffer = []
 linkBuflen = 0
@@ -82,46 +82,39 @@ mainNS = []
 # pageContent - <page>..content..</page>
 # pageDict - stores page attribute dict
 def recordArticle(pageDoc):
-   global linkBuffer, linkBuflen, nsBuffer, nsBuflen
+    global linkBuffer, linkBuflen, nsBuffer, nsBuflen
 
-   # a simple check for content
-   if pageDoc['length'] < 10:
-	return
-
-   _id = pageDoc['_id']
-
-   # only keep articles of Main namespace
-   if reOtherNamespace.match(pageDoc['title']):
+    # a simple check for content
+    if pageDoc['length'] < 10:
         return
 
-   nsBuffer.append((_id))
-   nsBuflen += 1
+    _id = pageDoc['_id']
 
-   if linkBuflen >= LINK_LOAD_THRES:
-   	cursor.executemany("""
-		INSERT INTO namespace (id)
-                VALUES (%s)
-              	""",nsBuffer)
+   # only keep articles of Main namespace
+    if reOtherNamespace.match(pageDoc['title']):
+        return
+
+    nsBuffer.append((_id))
+    nsBuflen += 1
+
+    if linkBuflen >= LINK_LOAD_THRES:
+        cursor.executemany("""INSERT INTO namespace (id) VALUES (%s)""", nsBuffer)
 
         nsBuffer = []
         nsBuflen = 0
 
-
-   # write links
-   for l in pageDoc['links']:
-        linkBuffer.append((_id,l)) # source, target
+    # write links
+    for l in pageDoc['links']:
+        linkBuffer.append((_id, l)) # source, target
         linkBuflen += 1
 
         if linkBuflen >= LINK_LOAD_THRES:
-                cursor.executemany("""
-                        INSERT INTO pagelinks (source_id,target_id)
-                        VALUES (%s,%s)
-                        """,linkBuffer)
+                cursor.executemany("""INSERT INTO pagelinks (source_id,target_id)VALUES (%s,%s)""", linkBuffer)
 
                 linkBuffer = []
                 linkBuflen = 0
 
-   return
+    return
 
 
 args = sys.argv[1:]
@@ -130,25 +123,25 @@ args = sys.argv[1:]
 if len(args) < 1:
     sys.exit()
 
-f = open(args[0],'r')
+f = open(args[0], 'r')
 for doc in xmlwikiprep.read(f):
-	recordArticle(doc)
+    recordArticle(doc)
 f.close()
 
 if nsBuflen > 0:
     cursor.executemany("""
-	INSERT INTO namespace (id)
+    INSERT INTO namespace (id)
         VALUES (%s)
-        """,nsBuffer)
+        """, nsBuffer)
 
     nsBuffer = []
     nsBuflen = 0
 
 if linkBuflen > 0:
     cursor.executemany("""
-	INSERT INTO pagelinks (source_id,target_id)
+    INSERT INTO pagelinks (source_id,target_id)
         VALUES (%s,%s)
-        """,linkBuffer)
+        """, linkBuffer)
 
     linkBuffer = []
     linkBuflen = 0
