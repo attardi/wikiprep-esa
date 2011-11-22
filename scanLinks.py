@@ -10,7 +10,7 @@ TABLE: inlinks        COLUMNS: target_id INT, inlink INT
 TABLE: outlinks        COLUMNS: source_id INT, outlink INT
 TABLE: namespace    COLUMNS: id INT
 
-USAGE: scanData.py <hgw.xml file from Wikiprep>
+USAGE: scanData.py < hgw.xml # file from Wikiprep
 
 IMPORTANT: If you use XML output from a recent version of Wikiprep
 (e.g. Zemanta fork), then set FORMAT to 'Zemanta-legacy' or 'Zemanta-modern'.
@@ -116,17 +116,8 @@ def recordArticle(pageDoc):
 
     return
 
-
-args = sys.argv[1:]
-# scanData.py <hgw_file>
-
-if len(args) < 1:
-    sys.exit()
-
-f = open(args[0], 'r')
-for doc in xmlwikiprep.read(f):
+for doc in xmlwikiprep.read(sys.stdin):
     recordArticle(doc)
-f.close()
 
 if nsBuflen > 0:
     cursor.executemany("""
