@@ -122,16 +122,13 @@ if __name__ == '__main__':
         print "scanLinks.py file1.gz file2.gz ... > links.txt"
         sys.exit(1)
 
-    print >>sys.stderr, "Creating outgoing list.."
-    outgoing = {}
-
     for fname in sys.argv[1:]:
         print >>sys.stderr, "  -> Processing file", fname
         #f = Popen(['zcat', fname], stdout=PIPE) # much faster than python gzip
         f = Popen(['pigz', '-d', '-c', fname], stdout=PIPE) # even faster
 
         for doc in xmlwikiprep.read(f.stdout, set(['text'])):
-            recordArticle(doc, outgoing)
+            recordArticle(doc)
 
     if nsBuflen > 0:
         cursor.executemany("""
