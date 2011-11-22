@@ -13,7 +13,7 @@ https://github.com/turian/wikiprep-postprocess
 written by Joseph Turian
 """
 
-def read(f):
+def read(f, ignore_tags=None):
     """
     Generator for reading a wikiprep XML file from a file object.
     """
@@ -21,7 +21,15 @@ def read(f):
     # print >> sys.stderr, stats()
     doc = {}
     cnt = 0
+
+    if not ignore_tags:
+        ignore_tags = set()
+
     for event, elem in cElementTree.iterparse(f):
+
+        if elem.tag in ignore_tags:
+            continue
+
         if elem.tag == "title":
             doc["title"] = ("".join(elem.itertext()))
         elif elem.tag == "text":
