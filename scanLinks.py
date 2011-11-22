@@ -1,36 +1,40 @@
 #!/usr/bin/python
 
 '''
-Copyright (C) 2011 Wavii <norman@wavii.com>
+Copyright (C) 2010  Cagatay Calli <ccalli@gmail.com>
 
-Scans XML output (gum.xml) from Wikiprep, in/out links count
+Scans XML output (gum.xml) from Wikiprep, creates 3 tables:
 
-USAGE: scanLinks.py gum1.xml gum2.xml ... # file from Wikiprep
+TABLE: pagelinks    COLUMNS: source_id INT, target_id INT
+TABLE: inlinks        COLUMNS: target_id INT, inlink INT
+TABLE: outlinks        COLUMNS: source_id INT, outlink INT
+TABLE: namespace    COLUMNS: id INT
+
+USAGE: scanData.py < hgw.xml # file from Wikiprep
+
+IMPORTANT: If you use XML output from a recent version of Wikiprep
+(e.g. Zemanta fork), then set FORMAT to 'Zemanta-legacy' or 'Zemanta-modern'.
+
 '''
 
 import sys
 import re
-import signal
-import collections
 import MySQLdb
-from subprocess import Popen, PIPE
+import signal
+from subprocess import PIPE, Popen
 import xmlwikiprep
 
-MIN_LINKS_COUNT = 5
-
-reOtherNamespace = re.compile("^(User|Wikipedia|File|MediaWiki|Template|Help|Category|Portal|Book|Talk|Special|Media|WP|User talk|Wikipedia talk|File talk|MediaWiki talk|Template talk|Help talk|Category talk|Portal talk):.+", re.DOTALL)
-
 LINK_LOAD_THRES = 10000
- 
+
 try:
     conn = MySQLdb.connect(host='localhost', user='root', passwd='123456', db='wiki', charset="utf8", use_unicode=True)
 except MySQLdb.Error, e:
     print "Error %d: %s" % (e.args[0], e.args[1])
     sys.exit(1)
- 
+
 try:
     cursor = conn.cursor()
- 
+
     cursor.execute("DROP TABLE IF EXISTS namespace")
     cursor.execute("""
         CREATE TABLE namespace
@@ -39,7 +43,7 @@ try:
           KEY (id)
         ) DEFAULT CHARSET=binary
     """)
- 
+
     cursor.execute("DROP TABLE IF EXISTS pagelinks")
     cursor.execute("""
         CREATE TABLE pagelinks
@@ -50,27 +54,37 @@ try:
           KEY (target_id)
         ) DEFAULT CHARSET=binary
     """)
- 
+
 except MySQLdb.Error, e:
     print "Error %d: %s" % (e.args[0], e.args[1])
     sys.exit(1)
- 
- 
+
+
 ## handler for SIGTERM ###
 def signalHandler(signum, frame):
     global conn, cursor
     cursor.close()
     conn.close()
     sys.exit(1)
- 
+
 signal.signal(signal.SIGTERM, signalHandler)
 #####
 
+reOtherNamespace = re.compile("^(User|Wikipedia|File|MediaWiki|Template|Help|Category|Portal|Book|Talk|Special|Media|WP|User talk|Wikipedia talk|File talk|MediaWiki talk|Template talk|Help talk|Category talk|Portal talk):.+", re.DOTALL)
+
+linkBuffer = []
+linkBuflen = 0
+
+nsBuffer = []
+nsBuflen = 0
+
+mainNS = []
+
 # pageContent - <page>..content..</page>
 # pageDict - stores page attribute dict
-def recordArticle(pageDoc, outgoing):
+def recordArticle(pageDoc):
     global linkBuffer, linkBuflen, nsBuffer, nsBuflen
-    
+
     # a simple check for content
     if pageDoc['length'] < 10:
         return
@@ -80,15 +94,29 @@ def recordArticle(pageDoc, outgoing):
    # only keep articles of Main namespace
     if reOtherNamespace.match(pageDoc['title']):
         return
-        
+
     nsBuffer.append((_id))
     nsBuflen += 1
 
     if linkBuflen >= LINK_LOAD_THRES:
         cursor.executemany("""INSERT INTO namespace (id) VALUES (%s)""", nsBuffer)
 
-    outgoing[_id] = list(set(pageDoc['links'])) # go through set to remove dups
-    
+        nsBuffer = []
+        nsBuflen = 0
+
+    # write links
+    for l in pageDoc['links']:
+        linkBuffer.append((_id, l)) # source, target
+        linkBuflen += 1
+
+        if linkBuflen >= LINK_LOAD_THRES:
+                cursor.executemany("""INSERT INTO pagelinks (source_id,target_id) VALUES (%s,%s)""", linkBuffer)
+
+                linkBuffer = []
+                linkBuflen = 0
+
+    return
+
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print "scanLinks.py file1.gz file2.gz ... > links.txt"
@@ -105,54 +133,40 @@ if __name__ == '__main__':
         for doc in xmlwikiprep.read(f.stdout, set(['text'])):
             recordArticle(doc, outgoing)
 
-    print >>sys.stderr, "Now creating incoming links count.."
-    incoming_count = collections.defaultdict(int)
-    for _id, links in outgoing.iteritems():
-        for l in links:
-            incoming_count[l] += 1
+    if nsBuflen > 0:
+        cursor.executemany("""
+        INSERT INTO namespace (id)
+            VALUES (%s)
+            """, nsBuffer)
 
-    print >>sys.stderr, "Output counts (id, outgoing, incoming).."
-    for _id, in_count in incoming_count.iteritems():
-        out_count = len(outgoing[_id])
-        if out_count < MIN_LINKS_COUNT or in_count < MIN_LINKS_COUNT:
-            continue
-        print >>sys.stdout, '%d\t%d\t%d' % (_id, out_count, in_count)
+        nsBuffer = []
+        nsBuflen = 0
 
+    if linkBuflen > 0:
+        cursor.executemany("""
+        INSERT INTO pagelinks (source_id,target_id)
+            VALUES (%s,%s)
+            """, linkBuffer)
 
-# if nsBuflen > 0:
-#     cursor.executemany("""
-#     INSERT INTO namespace (id)
-#         VALUES (%s)
-#         """, nsBuffer)
+        linkBuffer = []
+        linkBuflen = 0
 
-#     nsBuffer = []
-#     nsBuflen = 0
+    print >>sys.stderr, "Some db mangling.."
+    cursor.execute("DROP TABLE IF EXISTS tmppagelinks")
+    cursor.execute("CREATE TABLE tmppagelinks LIKE pagelinks")
+    cursor.execute("INSERT tmppagelinks SELECT p.* FROM pagelinks p WHERE EXISTS (SELECT * FROM namespace n WHERE p.target_id = n.id)")
+    cursor.execute("DROP TABLE pagelinks")
+    cursor.execute("RENAME TABLE tmppagelinks TO pagelinks")
 
-# if linkBuflen > 0:
-#     cursor.executemany("""
-#     INSERT INTO pagelinks (source_id,target_id)
-#         VALUES (%s,%s)
-#         """, linkBuffer)
+    # inlinks
+    cursor.execute("DROP TABLE IF EXISTS inlinks")
+    cursor.execute("CREATE TABLE inlinks AS SELECT p.target_id, COUNT(p.source_id) AS inlink FROM pagelinks p GROUP BY p.target_id")
+    cursor.execute("CREATE INDEX idx_target_id ON inlinks (target_id)")
 
-#     linkBuffer = []
-#     linkBuflen = 0
+    # outlinks
+    cursor.execute("DROP TABLE IF EXISTS outlinks")
+    cursor.execute("CREATE TABLE outlinks AS SELECT p.source_id, COUNT(p.target_id) AS outlink FROM pagelinks p GROUP BY p.source_id")
+    cursor.execute("CREATE INDEX idx_source_id ON outlinks (source_id)")
 
-
-# cursor.execute("DROP TABLE IF EXISTS tmppagelinks")
-# cursor.execute("CREATE TABLE tmppagelinks LIKE pagelinks")
-# cursor.execute("INSERT tmppagelinks SELECT p.* FROM pagelinks p WHERE EXISTS (SELECT * FROM namespace n WHERE p.target_id = n.id)")
-# cursor.execute("DROP TABLE pagelinks")
-# cursor.execute("RENAME TABLE tmppagelinks TO pagelinks")
-
-# # inlinks
-# cursor.execute("DROP TABLE IF EXISTS inlinks")
-# cursor.execute("CREATE TABLE inlinks AS SELECT p.target_id, COUNT(p.source_id) AS inlink FROM pagelinks p GROUP BY p.target_id")
-# cursor.execute("CREATE INDEX idx_target_id ON inlinks (target_id)")
-
-# # outlinks
-# cursor.execute("DROP TABLE IF EXISTS outlinks")
-# cursor.execute("CREATE TABLE outlinks AS SELECT p.source_id, COUNT(p.target_id) AS outlink FROM pagelinks p GROUP BY p.source_id")
-# cursor.execute("CREATE INDEX idx_source_id ON outlinks (source_id)")
-
-# cursor.close()
-# conn.close()
+    cursor.close()
+    conn.close()
