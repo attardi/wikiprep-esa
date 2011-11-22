@@ -87,9 +87,7 @@ elif options._format in ['zl', 'zemanta-legacy', 'Zemanta-legacy', 'Zemanta-Lega
     FORMAT = F_ZLEGACY
 
 # scanData.py <hgw_file> [--stopcats=<stop category file>]
-
-links_counts_fname = args[0]
-hgwpath = args[1:] # hgw/gum.xml
+hgwpath = args # hgw/gum.xml
 
 TITLE_WEIGHT = 4
 STOP_CATEGORY_FILTER = bool(options.stopcats)
@@ -233,24 +231,18 @@ textBuffer = []        # same as articleBuffer, stores text
 
 ###
 
-#inlinkDict = {}
-#outlinkDict = {}
-links_count = {}
+inlinkDict = {}
+outlinkDict = {}
 
-with open(links_counts_fname) as f:
-    for line in f:
-        _id, out_count, in_count = line.split('\t')
-        links_count[int(_id)] = (int(out_count), int(in_count))
+cursor.execute("SELECT i.target_id, i.inlink FROM inlinks i")
+rows = cursor.fetchall()
+for row in rows:
+    inlinkDict[row[0]] = row[1]
 
-# cursor.execute("SELECT i.target_id, i.inlink FROM inlinks i")
-# rows = cursor.fetchall()
-# for row in rows:
-#     inlinkDict[row[0]] = row[1]
-
-# cursor.execute("SELECT o.source_id, o.outlink FROM outlinks o")
-# rows = cursor.fetchall()
-# for row in rows:
-#     outlinkDict[row[0]] = row[1]
+cursor.execute("SELECT o.source_id, o.outlink FROM outlinks o")
+rows = cursor.fetchall()
+for row in rows:
+    outlinkDict[row[0]] = row[1]
 
 # for logging
 # Filtered concept id=12 (hede hodo) [minIncomingLinks]
@@ -299,19 +291,15 @@ def recordArticle(pageDoc):
         return'''
     # ******
 
-    lcount = links_count.get(_id)
-    if not lcount or lcount[0] < 5 or lcount[1] < 5:
-        log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8') + ') [minIncomingLinks/minOutgoingLinks]\n')
+    # ** inlink-outlink filter **
+    if not inlinkDict.has_key(_id) or inlinkDict[_id] < 5:
+        log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8') + ') [minIncomingLinks]\n')
         return
-    # # ** inlink-outlink filter **
-    # if not inlinkDict.has_key(_id) or inlinkDict[_id] < 5:
-    #     log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8') + ') [minIncomingLinks]\n')
-    #     return
 
-    # if not outlinkDict.has_key(_id) or outlinkDict[_id] < 5:
-    #     log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8') + ') [minOutgoingLinks]\n')
-    #     return
-    # # ******
+    if not outlinkDict.has_key(_id) or outlinkDict[_id] < 5:
+        log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8') + ') [minOutgoingLinks]\n')
+        return
+    # ******
 
     text = pageDoc['text']
 
