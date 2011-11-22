@@ -33,7 +33,7 @@ def recordArticle(pageDoc, outgoing):
     outgoing[_id] = list(set(pageDoc['links'])) # go through set to remove dups
     
 if __name__ == '__main__':
-    if len(sys.argv):
+    if len(sys.argv) < 2:
         print "scanLinks.py file1.gz file2.gz ... > links.txt"
         sys.exit(1)
 
