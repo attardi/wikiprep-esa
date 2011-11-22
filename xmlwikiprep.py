@@ -1,4 +1,8 @@
-import xml.etree.cElementTree as cElementTree
+
+try:
+    import cElementTree
+except:
+    import xml.etree.cElementTree as cElementTree
 import sys
 import string
 
