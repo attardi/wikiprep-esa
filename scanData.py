@@ -32,6 +32,7 @@ import re
 import MySQLdb
 import signal
 from optparse import OptionParser
+from subprocess import Popen, PIPE
 
 import lxml.html as html
 import Stemmer
@@ -45,7 +46,7 @@ F_ZLEGACY = 1    # zemanta legacy
 F_ZMODERN = 2    # zemanta modern
 
 usage = """
-USAGE: scanData.py <hgw.xml/gum.xml file from Wikiprep> --format=<Wikiprep dump format> [--stopcats=<stop category file>]
+USAGE: scanData.py links_count.txt gum1.xml.gz gum1.xml.gz ... --format=<Wikiprep dump format> [--stopcats=<stop category file>]
 
 Wikiprep dump formats:
 1. Gabrilovich [gl, gabrilovich]
@@ -87,7 +88,8 @@ elif options._format in ['zl', 'zemanta-legacy', 'Zemanta-legacy', 'Zemanta-Lega
 
 # scanData.py <hgw_file> [--stopcats=<stop category file>]
 
-hgwpath = args[0] # hgw/gum.xml
+links_counts_fname = args[0]
+hgwpath = args[1:] # hgw/gum.xml
 
 TITLE_WEIGHT = 4
 STOP_CATEGORY_FILTER = bool(options.stopcats)
@@ -231,18 +233,24 @@ textBuffer = []        # same as articleBuffer, stores text
 
 ###
 
-inlinkDict = {}
-outlinkDict = {}
+#inlinkDict = {}
+#outlinkDict = {}
+links_count = {}
 
-cursor.execute("SELECT i.target_id, i.inlink FROM inlinks i")
-rows = cursor.fetchall()
-for row in rows:
-    inlinkDict[row[0]] = row[1]
+with open(links_counts_fname) as f:
+    for line in f:
+        _id, out_count, in_count = line.split('\t')
+        links_count[int(_id)] = (int(out_count), int(in_count))
 
-cursor.execute("SELECT o.source_id, o.outlink FROM outlinks o")
-rows = cursor.fetchall()
-for row in rows:
-    outlinkDict[row[0]] = row[1]
+# cursor.execute("SELECT i.target_id, i.inlink FROM inlinks i")
+# rows = cursor.fetchall()
+# for row in rows:
+#     inlinkDict[row[0]] = row[1]
+
+# cursor.execute("SELECT o.source_id, o.outlink FROM outlinks o")
+# rows = cursor.fetchall()
+# for row in rows:
+#     outlinkDict[row[0]] = row[1]
 
 # for logging
 # Filtered concept id=12 (hede hodo) [minIncomingLinks]
@@ -291,15 +299,19 @@ def recordArticle(pageDoc):
         return'''
     # ******
 
-    # ** inlink-outlink filter ** 
-    if not inlinkDict.has_key(_id) or inlinkDict[_id] < 5:
-        log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8') + ') [minIncomingLinks]\n')
-    return
+    lcount = links_count.get(_id)
+    if not lcount or lcount[0] < 5 or lcount[1] < 5:
+        log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8') + ') [minIncomingLinks/minOutgoingLinks]\n')
+        return
+    # # ** inlink-outlink filter **
+    # if not inlinkDict.has_key(_id) or inlinkDict[_id] < 5:
+    #     log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8') + ') [minIncomingLinks]\n')
+    #     return
 
-    if not outlinkDict.has_key(_id) or outlinkDict[_id] < 5:
-        log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8') + ') [minOutgoingLinks]\n')
-    return
-    # ******
+    # if not outlinkDict.has_key(_id) or outlinkDict[_id] < 5:
+    #     log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8') + ') [minOutgoingLinks]\n')
+    #     return
+    # # ******
 
     text = pageDoc['text']
 
@@ -331,7 +343,7 @@ def recordArticle(pageDoc):
 
     if wordCount < NONSTOP_THRES:
         log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8') + ') [minNumFeaturesPerArticle]\n')
-    return
+        return
 
     cadd = ''
     for i in range(TITLE_WEIGHT):
@@ -356,24 +368,30 @@ def recordArticle(pageDoc):
     textBuffer = []
     aBuflen = 0
 
-    return
+for fname in sys.argv[1:]:
+    print >>sys.stderr, "  -> Processing file", fname
+    #f = Popen(['zcat', fname], stdout=PIPE) # much faster than python gzip
+    f = Popen(['pigz', '-d', '-c', fname], stdout=PIPE) # even faster
 
-f = open(hgwpath, 'r')
-for doc in xmlwikiprep.read(f):
-    recordArticle(doc)
-f.close()
+    for doc in xmlwikiprep.read(f.stdout):
+        recordArticle(doc)
 
-if aBuflen > 0:
-    cursor.executemany("""
-        INSERT INTO article (id,title)
-        VALUES (%s,%s)
-        """, articleBuffer)
-    cursor.executemany("""
-        INSERT INTO text (old_id,old_text)
-        VALUES (%s,%s)
-        """, textBuffer)
-    articleBuffer = []
-    textBuffer = []
+# f = open(hgwpath, 'r')
+# for doc in xmlwikiprep.read(f):
+#     recordArticle(doc)
+# f.close()
+
+    if aBuflen > 0:
+        cursor.executemany("""
+            INSERT INTO article (id,title)
+            VALUES (%s,%s)
+            """, articleBuffer)
+        cursor.executemany("""
+            INSERT INTO text (old_id,old_text)
+            VALUES (%s,%s)
+            """, textBuffer)
+        articleBuffer = []
+        textBuffer = []
 
 #cursor.execute("DROP TABLE outlinks")
 

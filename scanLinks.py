@@ -5,12 +5,14 @@ Copyright (C) 2011 Wavii <norman@wavii.com>
 
 Scans XML output (gum.xml) from Wikiprep, in/out links count
 
-USAGE: scanLinks.py file1.gz file2.gz ... > links.txt # file from Wikiprep
+USAGE: scanLinks.py gum1.xml gum2.xml ... # file from Wikiprep
 '''
 
 import sys
 import re
+import signal
 import collections
+import MySQLdb
 from subprocess import Popen, PIPE
 import xmlwikiprep
 
@@ -18,18 +20,73 @@ MIN_LINKS_COUNT = 5
 
 reOtherNamespace = re.compile("^(User|Wikipedia|File|MediaWiki|Template|Help|Category|Portal|Book|Talk|Special|Media|WP|User talk|Wikipedia talk|File talk|MediaWiki talk|Template talk|Help talk|Category talk|Portal talk):.+", re.DOTALL)
 
+LINK_LOAD_THRES = 10000
+ 
+try:
+    conn = MySQLdb.connect(host='localhost', user='root', passwd='123456', db='wiki', charset="utf8", use_unicode=True)
+except MySQLdb.Error, e:
+    print "Error %d: %s" % (e.args[0], e.args[1])
+    sys.exit(1)
+ 
+try:
+    cursor = conn.cursor()
+ 
+    cursor.execute("DROP TABLE IF EXISTS namespace")
+    cursor.execute("""
+        CREATE TABLE namespace
+        (
+          id INT(10),
+          KEY (id)
+        ) DEFAULT CHARSET=binary
+    """)
+ 
+    cursor.execute("DROP TABLE IF EXISTS pagelinks")
+    cursor.execute("""
+        CREATE TABLE pagelinks
+        (
+          source_id INT(10),
+          target_id INT(10),
+          KEY (source_id),
+          KEY (target_id)
+        ) DEFAULT CHARSET=binary
+    """)
+ 
+except MySQLdb.Error, e:
+    print "Error %d: %s" % (e.args[0], e.args[1])
+    sys.exit(1)
+ 
+ 
+## handler for SIGTERM ###
+def signalHandler(signum, frame):
+    global conn, cursor
+    cursor.close()
+    conn.close()
+    sys.exit(1)
+ 
+signal.signal(signal.SIGTERM, signalHandler)
+#####
+
 # pageContent - <page>..content..</page>
 # pageDict - stores page attribute dict
 def recordArticle(pageDoc, outgoing):
+    global linkBuffer, linkBuflen, nsBuffer, nsBuflen
+    
     # a simple check for content
     if pageDoc['length'] < 10:
         return
 
+    _id = pageDoc['_id']
+
    # only keep articles of Main namespace
     if reOtherNamespace.match(pageDoc['title']):
         return
+        
+    nsBuffer.append((_id))
+    nsBuflen += 1
 
-    _id = pageDoc['_id']
+    if linkBuflen >= LINK_LOAD_THRES:
+        cursor.executemany("""INSERT INTO namespace (id) VALUES (%s)""", nsBuffer)
+
     outgoing[_id] = list(set(pageDoc['links'])) # go through set to remove dups
     
 if __name__ == '__main__':
