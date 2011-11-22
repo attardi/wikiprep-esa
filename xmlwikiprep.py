@@ -1,6 +1,6 @@
 
 try:
-    import cElementTree
+    import cElementTree # this is manually installed
 except:
     import xml.etree.cElementTree as cElementTree
 import sys
