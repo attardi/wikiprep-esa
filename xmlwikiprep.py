@@ -24,9 +24,11 @@ def read(f):
             doc["text"] = ("".join(elem.itertext()))
         elif elem.tag == "link":
             # Skip internal links
-            if elem.get("url") is None: continue
+            if elem.get("url") is None:
+                continue
 
-            if "external links" not in doc: doc["external links"] = []
+            if "external links" not in doc:
+                doc["external links"] = []
             doc["external links"].append([elem.get("url"), ("".join(elem.itertext()))])
         elif elem.tag == "links":
             doc["links"] = [int(i) for i in string.split("".join(elem.itertext()))]
@@ -34,15 +36,15 @@ def read(f):
             doc["categories"] = [int(i) for i in string.split("".join(elem.itertext()))]
         elif elem.tag == "page":
             doc["_id"] = int(elem.get("id"))
-	    doc["length"] = int(elem.get("newlength"))
-	    if elem.get("stub"):
-		doc["stub"] = bool(elem.get("stub")=="1")
-	    if elem.get("disambig"):
-		doc["disambig"] = bool(elem.get("disambig")=="1")
-	    if elem.get("image"):
-		doc["image"] = bool(elem.get("image")=="1")
-	    if elem.get("category"):
-		doc["category"] = bool(elem.get("category")=="1")
+            doc["length"] = int(elem.get("newlength"))
+            if elem.get("stub"):
+                doc["stub"] = bool(elem.get("stub") == "1")
+            if elem.get("disambig"):
+                doc["disambig"] = bool(elem.get("disambig") == "1")
+            if elem.get("image"):
+                doc["image"] = bool(elem.get("image") == "1")
+            if elem.get("category"):
+                doc["category"] = bool(elem.get("category") == "1")
 
             cnt += 1
             yield doc
