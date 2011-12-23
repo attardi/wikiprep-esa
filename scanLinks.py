@@ -73,10 +73,8 @@ signal.signal(signal.SIGTERM, signalHandler)
 reOtherNamespace = re.compile("^(User|Wikipedia|File|MediaWiki|Template|Help|Category|Portal|Book|Talk|Special|Media|WP|User talk|Wikipedia talk|File talk|MediaWiki talk|Template talk|Help talk|Category talk|Portal talk):.+", re.DOTALL)
 
 linkBuffer = []
-linkBuflen = 0
 
 nsBuffer = []
-nsBuflen = 0
 
 mainNS = []
 
@@ -124,23 +122,17 @@ if __name__ == '__main__':
         for doc in xmlwikiprep.read(f.stdout, set(['text'])):
             recordArticle(doc)
 
-    if nsBuflen > 0:
+    if nsBuffer:
         cursor.executemany("""
         INSERT INTO namespace (id)
             VALUES (%s)
             """, nsBuffer)
 
-        nsBuffer = []
-        nsBuflen = 0
-
-    if linkBuflen > 0:
+    if linkBuffer:
         cursor.executemany("""
         INSERT INTO pagelinks (source_id,target_id)
             VALUES (%s,%s)
             """, linkBuffer)
-
-        linkBuffer = []
-        linkBuflen = 0
 
     print >>sys.stderr, "Some db mangling.."
     cursor.execute("DROP TABLE IF EXISTS tmppagelinks")
