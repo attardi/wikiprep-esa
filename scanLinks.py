@@ -83,7 +83,7 @@ mainNS = []
 # pageContent - <page>..content..</page>
 # pageDict - stores page attribute dict
 def recordArticle(pageDoc):
-    global linkBuffer, linkBuflen, nsBuffer, nsBuflen
+    global linkBuffer, nsBuffer
 
     # a simple check for content
     if pageDoc['length'] < 10:
@@ -96,24 +96,18 @@ def recordArticle(pageDoc):
         return
 
     nsBuffer.append((_id))
-    nsBuflen += 1
 
-    if linkBuflen >= LINK_LOAD_THRES:
+    if len(nsBuffer) >= LINK_LOAD_THRES:
         cursor.executemany("""INSERT INTO namespace (id) VALUES (%s)""", nsBuffer)
-
         nsBuffer = []
-        nsBuflen = 0
 
     # write links
     for l in pageDoc['links']:
         linkBuffer.append((_id, l)) # source, target
-        linkBuflen += 1
 
-        if linkBuflen >= LINK_LOAD_THRES:
+        if len(linkBuffer) >= LINK_LOAD_THRES:
                 cursor.executemany("""INSERT INTO pagelinks (source_id,target_id) VALUES (%s,%s)""", linkBuffer)
-
                 linkBuffer = []
-                linkBuflen = 0
 
     return
 
