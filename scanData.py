@@ -277,27 +277,27 @@ def recordArticle(pageDoc):
 
         # filter article with no category or belonging to stop categories
         if not cats or STOP_CATS.intersection(cats):
-            log.write('Filtered concept id=' + unicode(_id) + ' (' + title + ') [stop category]\n')
+            log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8', 'ignore') + ') [stop category]\n')
         return
    # ******
 
    # ** title filter **
     if piped_re.match(title):
-        log.write('Filtered concept id=' + unicode(_id) + ' (' + title + ') [regex]\n')
+        log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8', 'ignore') + ') [regex]\n')
         return
 
     '''if reList.match(title):
-        log.write('Filtered concept id='+unicode(id)+' ('+ title +') [list]\n')
+        log.write('Filtered concept id='+str(id)+' ('+ title +') [list]\n')
         return'''
     # ******
 
     # ** inlink-outlink filter **
     if not inlinkDict.has_key(_id) or inlinkDict[_id] < 5:
-        log.write('Filtered concept id=' + unicode(_id) + ' (' + title.encode('utf8') + ') [minIncomingLinks]\n')
+        log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8', 'ignore') + ') [minIncomingLinks]\n')
         return
 
     if not outlinkDict.has_key(_id) or outlinkDict[_id] < 5:
-        log.write('Filtered concept id=' + unicode(_id) + ' (' + title.encode('utf8') + ') [minOutgoingLinks]\n')
+        log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8', 'ignore') + ') [minOutgoingLinks]\n')
         return
     # ******
 
@@ -330,7 +330,7 @@ def recordArticle(pageDoc):
                     break
 
     if wordCount < NONSTOP_THRES:
-        log.write('Filtered concept id=' + unicode(_id) + ' (' + title.encode('utf8') + ') [minNumFeaturesPerArticle]\n')
+        log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8', 'ignore') + ') [minNumFeaturesPerArticle]\n')
         return
 
     cadd = ''
