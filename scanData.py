@@ -318,8 +318,8 @@ def recordArticle(pageDoc):
     wordCount = 0
     for m in reToken.finditer(cmerged):
         w = m.group()
-    if not w or len(w) <= 2 or not reAlpha.match(w):
-        continue
+        if not w or len(w) <= 2 or not reAlpha.match(w):
+            continue
     lword = w.lower()
     if not lword in STOP_WORDS:
         sword = STEMMER.stemWord(STEMMER.stemWord(STEMMER.stemWord(lword)))    # 3xPorter
