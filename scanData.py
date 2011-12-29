@@ -320,14 +320,14 @@ def recordArticle(pageDoc):
         w = m.group()
         if not w or len(w) <= 2 or not reAlpha.match(w):
             continue
-    lword = w.lower()
-    if not lword in STOP_WORDS:
-        sword = STEMMER.stemWord(STEMMER.stemWord(STEMMER.stemWord(lword)))    # 3xPorter
-        if not sword in tokens:
-            wordCount += 1
-            tokens.add(sword)
-            if wordCount == NONSTOP_THRES:
-                break
+        lword = w.lower()
+        if not lword in STOP_WORDS:
+            sword = STEMMER.stemWord(STEMMER.stemWord(STEMMER.stemWord(lword)))    # 3xPorter
+            if not sword in tokens:
+                wordCount += 1
+                tokens.add(sword)
+                if wordCount == NONSTOP_THRES:
+                    break
 
     if wordCount < NONSTOP_THRES:
         log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8') + ') [minNumFeaturesPerArticle]\n')
