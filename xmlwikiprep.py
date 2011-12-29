@@ -64,7 +64,7 @@ def read(f, ignore_tags=None):
 
             # Free the memory of the building tree
             elem.clear()
-            if cnt % 5000 == 0:
+            if cnt % 20000 == 0:
                 print >> sys.stderr, "Read %d articles from %s" % (cnt, f)
                 # print >> sys.stderr, stats()
     print >> sys.stderr, "...done reading %s" % f
