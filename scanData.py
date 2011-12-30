@@ -228,8 +228,6 @@ reList = re.compile('^List of .+', re.DOTALL | re.IGNORECASE)
 
 ###
 articleBuffer = []    # len: 100  / now: 200
-aBuflen = 0
-
 textBuffer = []        # same as articleBuffer, stores text
 
 ###
@@ -254,7 +252,7 @@ log = open('log.txt', 'w')
 # pageContent - <page>..content..</page>
 # pageDict - stores page attribute dict
 def recordArticle(pageDoc):
-    global articleBuffer, textBuffer, aBuflen, STEMMER
+    global articleBuffer, textBuffer, STEMMER
 
     if FORMAT == F_ZMODERN and (pageDoc['disambig'] or pageDoc['category'] or pageDoc['image']):
         return
@@ -344,20 +342,18 @@ def recordArticle(pageDoc):
     # write article info (id,title,text)
     articleBuffer.append((_id, ctitle.encode('utf8')))
     textBuffer.append((_id, cadd.encode('utf8')))
-    aBuflen += 1
 
-    if aBuflen >= 200:
+    if articleBuffer:
         cursor.executemany("""
-        INSERT INTO article (id,title)
-        VALUES (%s,%s)
-        """, articleBuffer)
-    cursor.executemany("""
-        INSERT INTO text (old_id,old_text)
-        VALUES (%s,%s)
-        """, textBuffer)
-    articleBuffer = []
-    textBuffer = []
-    aBuflen = 0
+            INSERT INTO article (id,title)
+            VALUES (%s,%s)
+            """, articleBuffer)
+        cursor.executemany("""
+            INSERT INTO text (old_id,old_text)
+            VALUES (%s,%s)
+            """, textBuffer)
+        articleBuffer = []
+        textBuffer = []
 
 for fname in args:
     print >>sys.stderr, "  -> Processing file", fname
@@ -372,7 +368,7 @@ for fname in args:
 #     recordArticle(doc)
 # f.close()
 
-    if aBuflen > 0:
+    if articleBuffer:
         cursor.executemany("""
             INSERT INTO article (id,title)
             VALUES (%s,%s)
