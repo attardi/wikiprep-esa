@@ -239,11 +239,13 @@ cursor.execute("SELECT i.target_id, i.inlink FROM inlinks i")
 rows = cursor.fetchall()
 for row in rows:
     inlinkDict[row[0]] = row[1]
+print '--> inlinkDict size:', len(inlinkDict)
 
 cursor.execute("SELECT o.source_id, o.outlink FROM outlinks o")
 rows = cursor.fetchall()
 for row in rows:
     outlinkDict[row[0]] = row[1]
+print '--> outlinkDict size:', len(outlinkDict)
 
 # for logging
 # Filtered concept id=12 (hede hodo) [minIncomingLinks]
@@ -264,7 +266,7 @@ def recordArticle(pageDoc):
     title = pageDoc['title']
     _id = pageDoc['_id']
 
-   # only keep articles of Main namespace
+    # only keep articles of Main namespace
     if reOtherNamespace.match(title):
         return
 
@@ -272,17 +274,17 @@ def recordArticle(pageDoc):
     if FORMAT != F_ZMODERN and _id in DISAMBIG_IDS:
         return
 
-   # ** stop category filter **
+    # ** stop category filter **
     if STOP_CATEGORY_FILTER:
         cats = frozenset(pageDoc['categories'])
 
         # filter article with no category or belonging to stop categories
         if not cats or STOP_CATS.intersection(cats):
             log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8', 'ignore') + ') [stop category]\n')
-        return
-   # ******
+            return
+    # ******
 
-   # ** title filter **
+    # ** title filter **
     if piped_re.match(title):
         log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8', 'ignore') + ') [regex]\n')
         return
