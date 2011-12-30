@@ -81,10 +81,13 @@ Wikiprep dump formats:
 
 if options._format in ['zm', 'zemanta-modern', 'Zemanta-modern', 'Zemanta-Modern', 'modern']:
     FORMAT = F_ZMODERN
+    print '--> Using zemanta-modern format!'
 elif options._format in ['gl', 'gabrilovich', 'Gabrilovich']:
     FORMAT = F_GABRI
+    print '--> Using gabrilovich format!'
 elif options._format in ['zl', 'zemanta-legacy', 'Zemanta-legacy', 'Zemanta-Legacy', 'legacy']:
     FORMAT = F_ZLEGACY
+    print '--> Using zemanta-legacy format!'
 
 # scanData.py <hgw_file> [--stopcats=<stop category file>]
 hgwpath = args # hgw/gum.xml
@@ -356,7 +359,7 @@ def recordArticle(pageDoc):
     textBuffer = []
     aBuflen = 0
 
-for fname in sys.argv[1:]:
+for fname in args:
     print >>sys.stderr, "  -> Processing file", fname
     #f = Popen(['zcat', fname], stdout=PIPE) # much faster than python gzip
     f = Popen(['pigz', '-d', '-c', fname], stdout=PIPE) # even faster
