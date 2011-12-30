@@ -293,11 +293,11 @@ def recordArticle(pageDoc):
     # ******
 
     # ** inlink-outlink filter **
-    if not inlinkDict.has_key(_id) or inlinkDict[_id] < 5:
+    if _id not in inlinkDict or inlinkDict[_id] < 5:
         log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8', 'ignore') + ') [minIncomingLinks]\n')
         return
 
-    if not outlinkDict.has_key(_id) or outlinkDict[_id] < 5:
+    if _id not in outlinkDict or outlinkDict[_id] < 5:
         log.write('Filtered concept id=' + str(_id) + ' (' + title.encode('utf8', 'ignore') + ') [minOutgoingLinks]\n')
         return
     # ******
@@ -343,7 +343,7 @@ def recordArticle(pageDoc):
     articleBuffer.append((_id, ctitle.encode('utf8')))
     textBuffer.append((_id, cadd.encode('utf8')))
 
-    if articleBuffer:
+    if len(articleBuffer) >= 200:
         cursor.executemany("""
             INSERT INTO article (id,title)
             VALUES (%s,%s)
