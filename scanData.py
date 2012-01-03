@@ -35,6 +35,7 @@ from optparse import OptionParser
 from subprocess import Popen, PIPE
 
 import lxml.html as html
+from lxml.etree import ParserError
 import Stemmer
 
 import xmlwikiprep
@@ -311,8 +312,12 @@ def recordArticle(pageDoc):
     ctitle = t.text_content()
 
     ctext = ''
-    t = html.fromstring(text)
-    ctext = t.text_content()
+    try:
+        t = html.fromstring(text)
+        ctext = t.text_content()
+    except ParserError:
+        log.write('Skipped concept id=' + str(_id) + ' (' + title.encode('utf8', 'ignore') + ') [parse error]\n')
+        return
 
     # filter articles with fewer than 100 -UNIQUE- non-stop words
     cmerged = ctitle + ' \n ' + ctext
