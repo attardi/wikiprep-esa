@@ -76,7 +76,8 @@ outk = 0
 for fname in args[:-1]:
     print >>sys.stderr, "  -> Processing file", fname
     #f = Popen(['zcat', fname], stdout=PIPE) # much faster than python gzip
-    f = Popen(['pigz', '-d', '-c', fname], stdout=PIPE) # even faster
+    fpopen = Popen(['pigz', '-d', '-c', fname], stdout=PIPE) # even faster
+    f = fpopen.stdout
     for i in range(3):
         f.readline() # skip header?
     for line in f.readline():
@@ -89,9 +90,8 @@ for fname in args[:-1]:
             outk += 1
             out.close()
             out = open(outPrefix + str(outk), 'w')
-    f.close()
-out.close()
 
+out.close()
 outk += 1
 
 try:
