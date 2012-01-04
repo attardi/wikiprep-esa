@@ -29,7 +29,7 @@ F_ZLEGACY = 1   # zemanta legacy
 F_ZMODERN = 2   # zemanta modern
 
 usage = """
-USAGE: addAnchors.py <anchor file from Wikiprep> <any writeable folder>' --format=<Wikiprep dump format>
+USAGE: addAnchors.py <anchor files from Wikiprep> <any writeable folder>' --format=<Wikiprep dump format>
 Wikiprep dump formats:
 1. Gabrilovich [gl, gabrilovich]
 2. Zemanta legacy [zl, legacy, zemanta-legacy]
@@ -102,7 +102,6 @@ except MySQLdb.Error, e:
 
 try:
     cursor = conn.cursor()
-
     for i in range(outk):
         si = str(i)
         cursor.execute("DROP TABLE IF EXISTS zanchor" + si)
@@ -124,5 +123,5 @@ try:
         cursor.close()
         conn.close()
 except MySQLdb.Error, e:
-        print "Error %d: %s" % (e.args[0], e.args[1])
-        sys.exit(1)
+    print "Error: %s" % e
+    sys.exit(1)
