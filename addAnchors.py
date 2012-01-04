@@ -39,11 +39,11 @@ Wikiprep dump formats:
 parser = OptionParser(usage=usage)
 parser.add_option("-f", "--format", dest="_format", help="Wikiprep dump format (g for Gabrilovich, zl for Zemanta-legacy,zm for Zemanta-modern)", metavar="FORMAT")
 (options, args) = parser.parse_args()
-if len(args) != 2:
+if len(args) < 2:
     print usage
     sys.exit()
 if not options._format:
-        print """
+    print """
 Wikiprep dump format not specified! Please select one from below with --format option:
 
 Wikiprep dump formats:
@@ -51,7 +51,7 @@ Wikiprep dump formats:
 2. Zemanta legacy [zl, legacy, zemanta-legacy]
 3. Zemanta modern [zm, modern, zemanta-modern]
 """
-        sys.exit()
+    sys.exit()
 
 if options._format in ['zm', 'zemanta-modern', 'Zemanta-modern', 'Zemanta-Modern', 'modern']:
         FORMAT = F_ZMODERN
@@ -72,7 +72,7 @@ out = open(outPrefix + '0', 'w')
 lc = 0
 outk = 0
 
-# usage python addAnchors enwiki-latest-pages-articles.anchor_text.000* out_dir --format=zm
+# usage python addAnchors.py enwiki-latest-pages-articles.anchor_text.000* out_dir --format=zm
 for fname in args[:-1]:
     print >>sys.stderr, "  -> Processing file", fname
     #f = Popen(['zcat', fname], stdout=PIPE) # much faster than python gzip
