@@ -82,8 +82,14 @@ for fname in args[:-1]:
         f.readline() # skip header?
     for line in f:
         fields = line.split('\t')
-        anc = fields[FIELD_POS].rstrip('\n')
-        out.write("%s\t%s\n" % (fields[0], anc))
+        anc = fields[FIELD_POS].strip()
+        if not anc:
+            continue
+        name = fields[0].strip()
+        if not name:
+            continue
+
+        out.write("%s\t%s\n" % (name, anc))
         lc += 1
         if lc >= PARTITION_SIZE:
             lc = 0
