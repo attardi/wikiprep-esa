@@ -60,7 +60,7 @@ elif options._format in ['gl', 'gabrilovich', 'Gabrilovich']:
 elif options._format in ['zl', 'zemanta-legacy', 'Zemanta-legacy', 'Zemanta-Legacy', 'legacy']:
         FORMAT = F_ZLEGACY
 
-PARTITION_SIZE = 100000
+PARTITION_SIZE = 2000000
 
 if FORMAT == F_GABRI:
     FIELD_POS = 2
