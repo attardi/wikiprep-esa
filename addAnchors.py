@@ -80,7 +80,7 @@ for fname in args[:-1]:
     f = fpopen.stdout
     for i in range(3):
         f.readline() # skip header?
-    for line in f.readline():
+    for line in f:
         fields = line.split('\t')
         anc = fields[FIELD_POS].rstrip('\n')
         out.write("%s\t%s\n" % (fields[0], anc))
