@@ -126,8 +126,8 @@ try:
         cursor.execute("UPDATE text t, anchorList" + si + " a SET t.old_text = CONCAT(a.anchor_text,' \n',t.old_text) WHERE t.old_id = a.target_id AND a.anchor_text IS NOT NULL;")
         cursor.execute("DROP TABLE anchorList" + si)
 
-        cursor.close()
-        conn.close()
+    cursor.close()
+    conn.close()
 except MySQLdb.Error, e:
     print "Error: %s" % e
     sys.exit(1)
