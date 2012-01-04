@@ -16,9 +16,11 @@ IMPORTANT: If you use XML output from a recent version of Wikiprep
 (e.g. Zemanta fork), then set FORMAT to 'Zemanta-legacy' or 'Zemanta-modern'.
 '''
 
+import os
 import sys
 import MySQLdb
 from optparse import OptionParser
+from subprocess import Popen, PIPE
 
 # Wikiprep dump format enum
 # formats: 1) Gabrilovich 2) Zemanta-legacy 3) Zemanta-modern
@@ -65,41 +67,30 @@ if FORMAT == F_GABRI:
 else:
     FIELD_POS = 3
 
-args = sys.argv[1:]
-
-if len(args) < 2:
-        sys.exit(1)
-
-f = open(args[0], 'r')
-
-outFolder = args[1].rstrip('/') + '/'
-outPrefix = outFolder + '/zanchor'
-
+outPrefix = os.path.join(args[-1], 'zanchor')
 out = open(outPrefix + '0', 'w')
-
-for i in range(3):
-    f.readline()
-
 lc = 0
 outk = 0
 
-for line in f.xreadlines():
-    fields = line.split('\t')
-    anc = fields[FIELD_POS].rstrip('\n')
-    out.write(fields[0] + '\t' + anc + '\n')
-    lc += 1
-
-    if lc >= PARTITION_SIZE:
-        lc = 0
-        outk += 1
-        out.close()
-        out = open(outPrefix + str(outk), 'w')
-
+# usage python addAnchors enwiki-latest-pages-articles.anchor_text.000* out_dir --format=zm
+for fname in args[:-1]:
+    print >>sys.stderr, "  -> Processing file", fname
+    #f = Popen(['zcat', fname], stdout=PIPE) # much faster than python gzip
+    f = Popen(['pigz', '-d', '-c', fname], stdout=PIPE) # even faster
+    for i in range(3):
+        f.readline() # skip header?
+    for line in f.readline():
+        fields = line.split('\t')
+        anc = fields[FIELD_POS].rstrip('\n')
+        out.write("%s\t%s\n" % (fields[0], anc))
+        lc += 1
+        if lc >= PARTITION_SIZE:
+            lc = 0
+            outk += 1
+            out.close()
+            out = open(outPrefix + str(outk), 'w')
+    f.close()
 out.close()
-f.close()
-
-if lc > 0:
-    out.close()
 
 outk += 1
 
