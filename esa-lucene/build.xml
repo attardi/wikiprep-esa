@@ -1,0 +1,67 @@
+<project name="esa-lucene" default="dist" basedir=".">
+    <description>
+       ESA-Lucene
+    </description>
+    
+  <!-- set global properties for this build -->
+  <property name="src" location="src"/>
+  <property name="build" location="build"/>
+  <property name="dist"  location="dist"/>
+  <property name="lib"   location="lib"/>
+  <property name="version" value="1.0.1"/>
+  
+  <path id="lib.classpath">
+    <pathelement location="bin"/>
+    <pathelement location="lib/servlet-api.jar"/>
+    <pathelement location="web/WEB-INF/lib/lucene-analyzers-3.0.0.jar"/>
+    <pathelement location="web/WEB-INF/lib/lucene-core-3.0.0.jar"/>
+    <pathelement location="web/WEB-INF/lib/mysql-connector-java-5.1.12-bin.jar"/>
+    <pathelement location="web/WEB-INF/lib/trove-2.1.0.jar"/>
+  </path>  
+
+  <target name="init">
+    <!-- Create the build directory structure used by compile -->
+    <mkdir dir="${build}"/>
+  </target>
+
+  <target name="compile" depends="init"
+        description="compile the source " >
+    <!-- Compile the java code from ${src} into ${build} -->
+    <javac srcdir="${src}" destdir="${build}">
+      <classpath refid="lib.classpath"/>
+    </javac>
+  </target>
+
+  <target name="dist" depends="compile"
+        description="generate the distribution" >
+    <!-- Create the distribution directory -->
+    <mkdir dir="${dist}/esa-lucene-${version}"/>
+
+    <copy todir="${dist}/esa-lucene-${version}/lib">
+        <fileset dir="${lib}"/>
+    </copy>
+    
+    <pathconvert refid="lib.classpath" pathsep=" " property="lib.classpath.jar-format">
+      <chainedmapper>
+        <flattenmapper />
+        <globmapper from="*" to="lib/*" />
+      </chainedmapper>
+    </pathconvert>
+
+    <!-- Put everything in ${build} and ${share} into esa-lucene.jar -->
+    <jar destfile="${dist}/esa-lucene-${version}/esa-lucene-${version}.jar">
+      <fileset dir="${build}" />
+      <manifest>
+        <attribute name="Main-Class" value="edu.wiki.index.ESAWikipediaIndexer" />
+        <attribute name="Class-Path" value="${lib.classpath.jar-format}" />
+      </manifest>
+    </jar>
+  </target>
+
+  <target name="clean"
+        description="clean up" >
+    <!-- Delete the ${build} and ${dist} directory trees -->
+    <delete dir="${build}"/>
+    <delete dir="${dist}"/>
+  </target>
+</project>
