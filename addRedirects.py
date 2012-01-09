@@ -17,7 +17,6 @@ import re
 import sys
 import MySQLdb
 from optparse import OptionParser
-from subprocess import Popen, PIPE
 
 # Wikiprep dump format enum
 # formats: 1) Gabrilovich 2) Zemanta-legacy 3) Zemanta-modern
@@ -26,7 +25,7 @@ F_ZLEGACY = 1   # zemanta legacy
 F_ZMODERN = 2   # zemanta modern
 
 usage = """
-USAGE: addRedirects.py <anchor files from Wikiprep> <any writeable folder>' --format=<Wikiprep dump format>
+USAGE: addRedirects.py <redir.xml file from Wikiprep> <any writeable folder>' --format=<Wikiprep dump format>
 Wikiprep dump formats:
 1. Gabrilovich [gl, gabrilovich]
 2. Zemanta legacy [zl, legacy, zemanta-legacy]
@@ -81,9 +80,7 @@ outk = 0
 
 for fname in args[:-1]:
     print >>sys.stderr, "  -> Processing file", fname
-    #f = Popen(['zcat', fname], stdout=PIPE) # much faster than python gzip
-    fpopen = Popen(['pigz', '-d', '-c', fname], stdout=PIPE) # even faster
-    f = fpopen.stdout
+    f = open(fname)
 
     prevText = ''
     firstRead = f.read(10000)
