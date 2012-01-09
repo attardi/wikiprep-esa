@@ -57,7 +57,7 @@ elif options._format in ['gl', 'gabrilovich', 'Gabrilovich']:
 elif options._format in ['zl', 'zemanta-legacy', 'Zemanta-legacy', 'Zemanta-Legacy', 'legacy']:
         FORMAT = F_ZLEGACY
 
-PARTITION_SIZE = 100000
+PARTITION_SIZE = 2000000
 RSIZE = 10000000        # read chunk size = 10 MB - implicit for now
 
 reModernREDIR = re.compile('<redirect>\n<from>\n<id>.+?</id>\n<name>(?P<text>.+?)</name>\n</from>\n<to>\n<id>(?P<target>\d+)</id>\n<name>.+?</name>\n</to>\n</redirect>', re.DOTALL | re.MULTILINE)
